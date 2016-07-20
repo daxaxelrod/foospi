@@ -1,37 +1,32 @@
 //
-//  PlayerTableViewController.swift
+//  GameTableViewController.swift
 //  FoosPiV2
 //
-//  Created by David Axelrod on 7/19/16.
+//  Created by David Axelrod on 7/20/16.
 //  Copyright © 2016 David Axelrod. All rights reserved.
 //
 
 import UIKit
 
-class PlayerTableViewController: UITableViewController {
-    
-    
-    var players = [Player]()
-    var results: NSDictionary = [:]
-    
-    //temp
-    let player1 = Player(name: "Andres", wins: 1289371293, losses: -13)
-    let player2 = Player(name: "David", wins:10,losses: 123)
-    let player3 = Player(name: "Max", wins:123,losses: 10)
-    let player4  = Player(name: "Adelina", wins: 2, losses: 1)
-    
-    
-    
 
+class GameTableViewController: UITableViewController {
+    
+    var games = [Game]()
+    var resultsGames: NSDictionary = [:]
+    
+//    let game1 = Game(gameID: 1, winner: "Max", duration: 12.4)
+//    let game2 = Game(gameID: 2, winner: "David", duration: 11232.4)
+//    let game3 = Game(gameID: 3, winner: "Andres", duration: 1211.4)
+    
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         tableView.dataSource = self
-        NSLog("First views")
-
-//        players += [player1, player2, player3, player4]
         
-        let url = "http://192.168.2.111:8000/api/v1/goals/"
+        //games += [game1,game2,game3]
         
+        //url
+        let url = "http://192.168.2.111:8000/api/v1/goals/games"
         let myUrl = NSURL(string: url)
         
         //create request
@@ -49,7 +44,7 @@ class PlayerTableViewController: UITableViewController {
             }
             
             let responseString: NSString? = NSString(data: data!, encoding: NSUTF8StringEncoding)
-                
+            
             
             NSLog("______Response_______")
             NSLog(responseString as! String)
@@ -61,38 +56,39 @@ class PlayerTableViewController: UITableViewController {
                     //                    self.results = convertedJsonIntoDict
                     // Print out dictionary
                     NSLog( "%@", convertedJsonIntoDict );
-                    self.results = convertedJsonIntoDict
+                    self.resultsGames = convertedJsonIntoDict
                     // Get value by key                                 as! NSArray! //as? [String : AnyObject]
                     if let results = convertedJsonIntoDict["results"] {
                         NSLog("+++++++++")
                         NSLog("+++++++++")
                         
-                        var tempArray: [Player] = []
+                        var tempArray: [Game] = []
                         for i in 0 ..< results.count {
-                            NSLog("________________")
-                            //let individualPlayer: NSDictionary = results[i]
-//                            print(results[i]["id"]!)
-                        
-                            if let name = results[i]["name"]!, wins = results[i]["wins"]!, losses = results[i]["losses"]! {
-                                print("________")
-                                let person = Player(name: name as! String, wins: wins as! Int, losses: losses as! Int)
-                                tempArray.append(person)
+                            
+                            if let id: Int = results[i]["id"]! as? Int, winner: String = results[i]["winner"]! as? String, duration: String = results[i]["duration"]! as? String{
+//                                print("id: \(id), winner: \(winner) duration: \(duration)")
+                                let numberFormatter = NSNumberFormatter()
+                                let number = numberFormatter.numberFromString(duration)
+                                let floatVal = number!.floatValue
                                 
-//                              let waka: AnyClass! = object_getClass(person)
-//                              print(waka)
+                                let game = Game(gameID: id, winner: winner, duration: floatVal)
+                                tempArray.append(game)
+                                
+                                //                              let waka: AnyClass! = object_getClass(person)
+                                //                              print(waka)
                                 
                             }
                         }
                         
-                        self.players += tempArray
-                        print(self.players)
+                        self.games += tempArray
+                        self.games = self.games.reverse()
                         dispatch_async(dispatch_get_main_queue()) { [unowned self] in
                             self.tableView.reloadData()
                             NSLog("%@", [NSThread.currentThread()])
                             //has to execute on the main thread
                             
                         }
-
+                        
                         
                         
                     } else {
@@ -110,10 +106,12 @@ class PlayerTableViewController: UITableViewController {
         
         dispatch_async(dispatch_get_main_queue(),{
             self.tableView.reloadData()
+            
         })
         
 
- }
+    
+    }
 
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
@@ -129,31 +127,60 @@ class PlayerTableViewController: UITableViewController {
 
     override func tableView(tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         
-//        if self.players.count == 0{
-//            let emptyLabel = UILabel(frame: CGRectMake(0, 0, self.view.bounds.size.width, self.view.bounds.size.height))
-//            emptyLabel.text = "Check Your Internet Connection"
-//            emptyLabel.textAlignment = NSTextAlignment.Center
-//            self.tableView.backgroundView = emptyLabel
-//            self.tableView.separatorStyle = UITableViewCellSeparatorStyle.None
-//            return 0
-//        }
-        return self.players.count
+        if self.games.count == 0 {
+            let emptyLabel = UILabel(frame: CGRectMake(0, 0, self.view.bounds.size.width, self.view.bounds.size.height))
+            emptyLabel.text = "Check Your Internet Connection"
+            emptyLabel.textAlignment = NSTextAlignment.Center
+            self.tableView.backgroundView = emptyLabel
+            self.tableView.separatorStyle = UITableViewCellSeparatorStyle.None
+            return 0
+        }
+        
+        return games.count
     }
 
     
     override func tableView(tableView: UITableView, cellForRowAtIndexPath indexPath: NSIndexPath) -> UITableViewCell {
-        let cellIdentifier = "PlayerTableViewCell"
+        let cellIdentifier = "GameTableViewCell"
+        let cell = tableView.dequeueReusableCellWithIdentifier(cellIdentifier, forIndexPath: indexPath) as! GameTableViewCell
         
-        let cell = tableView.dequeueReusableCellWithIdentifier(cellIdentifier, forIndexPath: indexPath) as! PlayerTableViewCell
-        
-        // Configure the cell...
-        let player = players[indexPath.row]
-        cell.playerName.text = player.name
-        cell.winsAndLosses.text = "Wins: \(player.wins)  Losses: \(player.losses)"
+        let game = games[indexPath.row]
+        cell.gameID.text = "\(game.gameID)"
+        cell.winner.text = game.winner
+        cell.duration.text = "\(game.duration) (in s)"
 
         return cell
     }
- 
+    
+    override func tableView(tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
+        let vw = UIView()
+        
+        vw.backgroundColor = UIColor.blackColor()
+        //creation and spacing
+        let labelGameNum = UILabel(frame: CGRectMake(self.view.bounds.size.width/20, 0, self.view.bounds.size.width/3, 10))
+        let labelWinner = UILabel(frame: CGRectMake(self.view.bounds.size.width*1/3, 0, self.view.bounds.size.width/3, 10))
+        let labelDuration = UILabel(frame: CGRectMake(self.view.bounds.size.width*2/3, 0, self.view.bounds.size.width/3, 10))
+        
+        //coloring
+        labelGameNum.textColor = UIColor.blueColor()
+        labelGameNum.text = "Game#"
+        labelWinner.textColor = UIColor.blueColor()
+        labelWinner.text = "Winner"
+        labelDuration.textColor = UIColor.blueColor()
+        labelDuration.text = "Duration"
+        
+        //sizeing
+        labelGameNum.sizeToFit()
+        labelWinner.sizeToFit()
+        labelDuration.sizeToFit()
+        
+        
+        vw.addSubview(labelGameNum)
+        vw.addSubview(labelWinner) //problem child
+        vw.addSubview(labelDuration)
+        
+        return vw
+    }
 
     /*
     // Override to support conditional editing of the table view.
